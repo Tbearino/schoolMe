@@ -55,10 +55,10 @@ home(){const u=upcoming();return `<h1><small>Živjo,</small>${esc(S.name||'štud
 urnik(){const mon=addD(sel,-wd(sel));const list=classesOn(sel);const now=new Date();const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');const isT=iso(sel)===iso(today);
  const evs=S.events.filter(e=>e.date===iso(sel));
  return `<h1><small>${sel.getDate()}. ${sel.toLocaleDateString('sl',{month:'long'})}</small>${isT?'Danes':DN[wd(sel)]==='Ned'?'Nedelja':sel.toLocaleDateString('sl',{weekday:'long'}).replace(/^./,c=>c.toUpperCase())}</h1>
- <div class="week"><button class="arr" data-wk="-7" aria-label="Prejšnji teden">‹</button><div class="days">${[0,1,2,3,4,5,6].map(i=>{const d=addD(mon,i);return `<button class="day ${iso(d)===iso(sel)?'on':''}" data-day="${iso(d)}">${DN[i]}<b>${d.getDate()}</b></button>`}).join('')}</div><button class="arr" data-wk="7" aria-label="Naslednji teden">›</button></div>
+ <div class="week"><button class="arr" data-wk="-7" aria-label="Prejšnji teden">‹</button><div class="days">${[0,1,2,3,4,5,6].map(i=>{const d=addD(mon,i);return `<button class="day ${iso(d)===iso(sel)?'on':''} ${classesOn(d).length||S.events.some(e=>e.date===iso(d))?'has':''}" data-day="${iso(d)}">${DN[i]}<b>${d.getDate()}</b></button>`}).join('')}</div><button class="arr" data-wk="7" aria-label="Naslednji teden">›</button></div>
  ${list.length?`<div class="tl">${list.map(c=>`<div class="slot"><span class="hr">${esc(c.start)}</span><${c.teams?'div':'button'} class="cls ${isT&&c.start<=hm&&c.end>=hm?'now':''}" style="--c:${esc(c.color)}" ${c.teams?'':`data-edit-cls="${esc(c.id)}"`}><div class="t">${esc(c.subject)}</div><div class="s">${esc([c.type,c.room,c.prof].filter(Boolean).join(' · '))}</div><div class="s">${esc(c.start)}–${esc(c.end)}${c.date?'':' · vsak teden'}</div>${c.join?`<a class="join" href="${esc(c.join)}" target="_blank" rel="noopener">Pridruži se v Teams</a>`:''}</${c.teams?'div':'button'}></div>`).join('')}</div>`:'<div class="empty">Ta dan ni predavanj.</div>'}
  ${evs.length?`<h2>Roki ta dan</h2>${evs.map(e=>evHTML({t:e.title,s:e.subject,when:fmtD(e.date),time:e.time,ev:e.id},1)).join('')}`:''}
- <div class="btns"><button class="btn" data-act="addClass">+ Predavanje</button><button class="btn sec" data-act="import">Uvozi urnik (XML / .ics)</button></div>`},
+ <div class="btns"><button class="btn" data-act="addClass">+ Predavanje</button><button class="btn sec" data-act="import">Uvozi urnik</button></div>`},
 predmeti(){return `<h1><small>${esc(S.program||'')}</small>Predmeti</h1>
  <div class="btns" style="margin:-6px 0 16px"><button class="btn" data-act="addSubject">+ Dodaj predmet</button><button class="btn sec" data-act="import">Uvozi iz urnika</button></div>
  ${S.subjects.map(s=>{const a=avg(s);return `<button class="subj" data-sub="${esc(s.id)}"><span class="dot" style="background:${esc(s.color)}">${esc(s.name[0]||'?')}</span><span><span class="t">${esc(s.name)}</span><br><span class="s">${s.grades.length} ocen · ${S.events.filter(e=>e.subject===s.name&&e.date>=iso(today)).length} rokov</span></span><span class="avg">${a??''}</span></button>`}).join('')||'<div class="empty">Še ni predmetov.</div>'}`},
@@ -181,11 +181,50 @@ function parseICS(txt){const lines=txt.replace(/\r?\n[ \t]/g,'').split(/\r?\n/);
  const dt=v=>{const m=v.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?(Z)?/);if(!m)return{};if(m[6]){const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return{d:iso(d),t:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}}return{d:`${m[1]}-${m[2]}-${m[3]}`,t:m[4]?m[4]+':'+m[5]:'00:00'}};
  for(const l of lines){if(l==='BEGIN:VEVENT')e={};else if(l==='END:VEVENT'&&e){if(e.s&&e.n)out.push({id:uid(),subject:e.n,type:'Predavanje',room:e.r||'',prof:'',start:e.s.t,end:(e.e||e.s).t,date:e.s.d,color:COLORS[0]});e=null}
   else if(e){const i=l.indexOf(':');const k=l.slice(0,i).split(';')[0],v=l.slice(i+1).replace(/\\,/g,',').replace(/\\n/g,' ');if(k==='SUMMARY')e.n=v;if(k==='LOCATION')e.r=v;if(k==='DTSTART')e.s=dt(v);if(k==='DTEND')e.e=dt(v)}}return out}
-function importSheet(){sheet(`<h3>Uvozi urnik</h3><p class="hint">Izberi XML ali .ics datoteko iz e-študija. Če kaj ne pride prav, mi pošlji datoteko in prilagodim branje.</p><label>Datoteka</label><input type="file" id="f" accept=".xml,.ics,text/xml,text/calendar"><div id="res"></div>`,el=>{
- el.querySelector('#f').onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const txt=await file.text();let list=[];
-  try{list=/BEGIN:VCALENDAR/.test(txt)?parseICS(txt):parseXML(txt)}catch(x){el.querySelector('#res').innerHTML=`<p class="hint">${esc(x.message)}</p>`;return}
+// Excel koledar iz e-študija: vrstica s kraticami, vrstica z mesecem (+ "izp"), vrstica s številkami dni; legenda "KRAT Ime - Profesor"
+const MON=['jan','feb','mar','apr','maj','jun','jul','avg','sep','okt','nov','dec'];
+function parseGrid(rows){
+ const legend={};const cell=(r,c)=>rows[r]&&rows[r][c]!=null?String(rows[r][c]).trim():'';
+ let y0=null;rows.forEach(r=>(r||[]).forEach(v=>{const s=String(v??'').trim();let m=s.match(/^([A-ZČŠŽ]{2,5})\s+(.+?)\s+[-–]\s+(.+)$/);if(m)legend[m[1]]={name:m[2],prof:m[3]};if(!y0&&(m=s.match(/(20\d\d)\s*\/\s*\d{2}/)))y0=+m[1]}));
+ if(!y0)y0=today.getMonth()>=8?today.getFullYear():today.getFullYear()-1;
+ const classes=[],events=[];
+ rows.forEach((r,i)=>{const mi=MON.indexOf(cell(i,0).toLowerCase().slice(0,3));if(mi<0)return;
+  const nums=rows[i+1]||[];const year=mi>=8?y0:y0+1;
+  nums.forEach((n,c)=>{const d=parseInt(n);if(!(d>=1&&d<=31)||String(n).trim()!==String(d))return;
+   const date=`${year}-${String(mi+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const code=cell(i-1,c),mark=cell(i,c).toLowerCase();
+   const L=legend[code];
+   const isEx=mark.startsWith('izp');
+   if(code&&L&&!isEx)classes.push({code,subject:L.name,prof:L.prof,date});
+   else if(code&&code.length>4&&!/^\d+$/.test(code))events.push({title:code,subject:'',date,time:''});
+   if(mark.startsWith('izp'))events.push({title:'Izpit'+(L?' – '+code:''),subject:L?L.name:'',date,time:'',exam:true})})});
+ return{legend,classes,events}}
+async function readXlsx(file){const X=await import('xlsx');const wb=X.read(await file.arrayBuffer(),{type:'array'});return X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:null})}
+
+function importSheet(){sheet(`<h3>Uvozi urnik</h3><p class="hint">Izberi Excel urnik iz e-študija (.xlsx) ali koledar (.ics, .xml).</p><label>Datoteka</label><input type="file" id="f" accept=".xlsx,.xls,.xml,.ics,text/xml,text/calendar,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"><div id="res"></div>`,el=>{
+ const res=el.querySelector('#res');
+ el.querySelector('#f').onchange=async ev=>{const file=ev.target.files[0];if(!file)return;res.innerHTML='<p class="hint">Berem …</p>';
+  if(/\.xlsx?$/i.test(file.name)){let g;try{g=parseGrid(await readXlsx(file))}catch(x){res.innerHTML=`<p class="hint">Excela ne morem prebrati: ${esc(x.message)}</p>`;return}
+   const codes=Object.keys(g.legend);if(!g.classes.length){res.innerHTML='<p class="hint">V tej datoteki nisem našla terminov. Pošlji mi jo, da prilagodim branje.</p>';return}
+   const exams=g.events.filter(e=>e.exam).length,dates=g.classes.map(c=>c.date).sort();
+   res.innerHTML=`<p><b>${g.classes.length} predavanj, ${codes.length} predmetov, ${exams} izpitov</b><br><span class="hint">${fmtD(dates[0])} – ${fmtD(dates[dates.length-1])} ${dates[dates.length-1].slice(0,4)}</span></p>
+   ${codes.map(k=>`<div class="row"><span><b>${esc(k)}</b> ${esc(g.legend[k].name)}</span><span class="s" style="white-space:nowrap">${esc(g.legend[k].prof)}</span></div>`).join('')}
+   <p class="hint" style="margin-top:12px">V datoteki ni ur predavanj. Nastavi običajne ure, kasneje jih lahko popraviš pri vsakem terminu.</p>
+   <div class="two"><div><label>Začetek</label><input type="time" id="ts" value="17:00"></div><div><label>Konec</label><input type="time" id="te" value="20:15"></div></div>
+   ${S.sample?'<label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="cs" checked style="width:22px;min-height:22px"> Odstrani vzorčne podatke</label>':''}
+   <div class="btns"><button class="btn" id="ok">Uvozi urnik</button></div>`;
+   el.querySelector('#ok').onclick=()=>{const ts=el.querySelector('#ts').value||'17:00',te=el.querySelector('#te').value||'20:15';
+    if(el.querySelector('#cs')?.checked){S.subjects=[];S.classes=[];S.events=[];S.notes=[];S.sample=false}
+    S.classes=S.classes.filter(c=>c.src!=='xlsx');S.events=S.events.filter(e=>e.src!=='xlsx');
+    codes.forEach((k,i)=>{const L=g.legend[k];let s=S.subjects.find(x=>x.name.toLowerCase()===L.name.toLowerCase());if(!s){s={id:uid(),name:L.name,prof:L.prof,color:COLORS[(S.subjects.length)%6],grades:[],note:'',materials:[]};S.subjects.push(s)}else if(!s.prof)s.prof=L.prof;s.code=k});
+    const col=n=>S.subjects.find(s=>s.name===n)?.color||COLORS[0];
+    S.classes=S.classes.concat(g.classes.map(c=>({id:uid(),subject:c.subject,type:'Predavanje',room:'',prof:c.prof,start:ts,end:te,date:c.date,color:col(c.subject),src:'xlsx'})));
+    S.events=S.events.concat(g.events.map(e=>({id:uid(),title:e.title,subject:e.subject,date:e.date,time:e.time,src:'xlsx'})));
+    const next=dates.find(d=>d>=iso(today))||dates[0];sel=new Date(next+'T00:00');tab='urnik';done(`Uvoženih ${g.classes.length} predavanj`)};
+   return}
+  const txt=await file.text();let list=[];
+  try{list=/BEGIN:VCALENDAR/.test(txt)?parseICS(txt):parseXML(txt)}catch(x){res.innerHTML=`<p class="hint">${esc(x.message)}</p>`;return}
   const names=[...new Set(list.map(c=>c.subject))];names.forEach((n,i)=>{const col=S.subjects.find(s=>s.name===n)?.color||COLORS[(S.subjects.length+i)%6];list.forEach(c=>{if(c.subject===n)c.color=col})});
-  el.querySelector('#res').innerHTML=list.length?`<p><b>Najdenih ${list.length} terminov</b> (${names.length} predmetov)</p>${list.slice(0,6).map(c=>`<div class="row"><span>${esc(c.subject)}</span><b>${c.date?fmtD(c.date):DN[c.day]} ${esc(c.start)}</b></div>`).join('')}${list.length>6?'<p class="hint">…</p>':''}<div class="btns"><button class="btn" id="ok">Dodaj v urnik</button></div>`:'<p class="hint">V datoteki nisem našla terminov. Pošlji mi jo, da prilagodim branje.</p>';
+  res.innerHTML=list.length?`<p><b>Najdenih ${list.length} terminov</b> (${names.length} predmetov)</p>${list.slice(0,6).map(c=>`<div class="row"><span>${esc(c.subject)}</span><b>${c.date?fmtD(c.date):DN[c.day]} ${esc(c.start)}</b></div>`).join('')}${list.length>6?'<p class="hint">…</p>':''}<div class="btns"><button class="btn" id="ok">Dodaj v urnik</button></div>`:'<p class="hint">V datoteki nisem našla terminov. Pošlji mi jo, da prilagodim branje.</p>';
   el.querySelector('#ok')?.addEventListener('click',()=>{list.forEach(c=>ensureSubject(c.subject,c.color));S.classes=S.classes.concat(list);const first=list.map(c=>c.date).filter(Boolean).sort()[0];if(first)sel=new Date(first+'T00:00');tab='urnik';done(`Dodanih ${list.length} terminov`)})}})}
 
 // --- Teams ---
