@@ -60,8 +60,8 @@ urnik(){const mon=addD(sel,-wd(sel));const list=classesOn(sel);const now=new Dat
  ${evs.length?`<h2>Roki ta dan</h2>${evs.map(e=>evHTML({t:e.title,s:e.subject,when:fmtD(e.date),time:e.time,ev:e.id},1)).join('')}`:''}
  <div class="btns"><button class="btn" data-act="addClass">+ Predavanje</button><button class="btn sec" data-act="import">Uvozi urnik (XML / .ics)</button></div>`},
 predmeti(){return `<h1><small>${esc(S.program||'')}</small>Predmeti</h1>
- ${S.subjects.map(s=>{const a=avg(s);return `<button class="subj" data-sub="${esc(s.id)}"><span class="dot" style="background:${esc(s.color)}">${esc(s.name[0]||'?')}</span><span><span class="t">${esc(s.name)}</span><br><span class="s">${s.grades.length} ocen · ${S.events.filter(e=>e.subject===s.name&&e.date>=iso(today)).length} rokov</span></span><span class="avg">${a??''}</span></button>`}).join('')||'<div class="empty">Še ni predmetov.</div>'}
- <button class="btn w" data-act="addSubject">+ Dodaj predmet</button>`},
+ <div class="btns" style="margin:-6px 0 16px"><button class="btn" data-act="addSubject">+ Dodaj predmet</button><button class="btn sec" data-act="import">Uvozi iz urnika</button></div>
+ ${S.subjects.map(s=>{const a=avg(s);return `<button class="subj" data-sub="${esc(s.id)}"><span class="dot" style="background:${esc(s.color)}">${esc(s.name[0]||'?')}</span><span><span class="t">${esc(s.name)}</span><br><span class="s">${s.grades.length} ocen · ${S.events.filter(e=>e.subject===s.name&&e.date>=iso(today)).length} rokov</span></span><span class="avg">${a??''}</span></button>`}).join('')||'<div class="empty">Še ni predmetov.</div>'}`},
 zapiski(){return `<h1><small>Hitri zapiski</small>Sticky notes</h1><div class="notes">${S.notes.map(noteHTML).join('')}<button class="note add" data-act="addNote">+ Dodaj</button></div>`},
 chat(){
  if(!M.acc)return `<h1><small>Skupine in sporočila</small>Chat</h1>
@@ -88,7 +88,7 @@ const go=k=>{tab=k;try{history.replaceState(null,'','#'+k)}catch(e){}render();wi
 
 // sheets
 const close=()=>$('#scrim').classList.remove('open');
-function sheet(html,bind){$('#sheet').innerHTML=html;$('#scrim').classList.add('open');bind&&bind($('#sheet'));const f=$('#sheet').querySelector('input,textarea,select');f&&setTimeout(()=>f.focus(),50)}
+function sheet(html,bind){$('#sheet').innerHTML=html;$('#scrim').classList.add('open');bind&&bind($('#sheet'));const f=$('#sheet').querySelector('input,textarea,select');f&&!$('#sheet .shead')&&setTimeout(()=>f.focus(),50)}
 $('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')close()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 const swatch=(list,cur)=>`<div class="sw">${list.map(c=>`<button type="button" data-c="${c}" class="${c===cur?'on':''}" style="background:${c}" aria-label="Barva ${c}"></button>`).join('')}</div>`;
@@ -127,20 +127,36 @@ function noteForm(n){n=n||{text:'',color:NOTE_C[0]};const isNew=!n.id;
  el.querySelector('form').onsubmit=e=>{e.preventDefault();const o={...n,id:n.id||uid(),text:val(el,'text'),color:swVal(el)||n.color};const i=S.notes.findIndex(x=>x.id===o.id);i<0?S.notes.unshift(o):S.notes[i]=o;done('Shranjeno')};
  el.querySelector('[data-del]')?.addEventListener('click',()=>{S.notes=S.notes.filter(x=>x.id!==n.id);done('Izbrisano')})})}
 
-function subjectView(s){const a=avg(s);const evs=S.events.filter(e=>e.subject===s.name).sort((x,y)=>x.date.localeCompare(y.date));const cls=S.classes.filter(c=>c.subject===s.name);
- sheet(`<h3 style="display:flex;gap:10px;align-items:center"><span class="dot" style="background:${esc(s.color)}">${esc(s.name[0])}</span>${esc(s.name)}</h3>
- <div class="row"><span>Povprečje</span><b style="font-size:22px">${a??'–'}</b></div>
+function subjectView(s){const a=avg(s);const evs=S.events.filter(e=>e.subject===s.name).sort((x,y)=>x.date.localeCompare(y.date));const cls=S.classes.filter(c=>c.subject===s.name);s.materials=s.materials||[];
+ const tm=M.teams&&s.teamId?M.teams.find(t=>t.id===s.teamId):null;
+ sheet(`<div class="shead" style="--c:${esc(s.color)}"><div><div class="sname">${esc(s.name)}</div><div class="sprof">${s.prof?esc(s.prof):'<i>Profesor ni vpisan</i>'}</div></div><div class="sgrade"><span>Ocena</span><b>${a??'–'}</b></div></div>
+ <button class="link" id="se">Uredi predmet</button>
+ <h2>Gradiva</h2>
+ ${s.teamId?(M.acc?`<div id="tf"><p class="hint">Nalagam datoteke iz teama${tm?' '+esc(tm.name):''} …</p></div>`:'<p class="hint">Predmet je povezan s Teams teamom. Datoteke se pokažejo, ko bo prijava v Teams delovala.</p>'):'<p class="hint">Ko bo Teams povezan, lahko predmet povežeš s teamom in tu se pokažejo njegove datoteke.</p>'}
+ ${s.materials.map(m=>`<div class="row"><a class="mat" href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.title)}</a><button class="x" data-dm="${esc(m.id)}" aria-label="Odstrani gradivo">×</button></div>`).join('')}
+ <form id="mf" style="margin-top:8px"><div class="two"><input name="mt" placeholder="Naslov gradiva" required><input name="mu" type="url" placeholder="Povezava (https://…)" required></div><div class="btns"><button class="btn sec">+ Dodaj gradivo</button></div></form>
  <h2>Ocene</h2>${s.grades.map(g=>`<div class="row"><span>${esc(g.label)}</span><span><b>${esc(g.value)}</b><button class="x" data-dg="${esc(g.id)}" aria-label="Izbriši oceno">×</button></span></div>`).join('')||'<p class="hint">Še ni ocen.</p>'}
  <form class="two" style="margin-top:8px" id="gf"><input name="label" placeholder="npr. Kolokvij" required><div style="display:flex;gap:6px"><input name="value" placeholder="Ocena" required><button class="btn">+</button></div></form>
  <h2>Pomembni datumi</h2>${evs.map(e=>`<div class="row"><span>${esc(e.title)}</span><b>${fmtD(e.date)} ${esc(e.time||'')}</b></div>`).join('')||'<p class="hint">Ni rokov.</p>'}
  <h2>Urnik</h2>${cls.map(c=>`<div class="row"><span>${esc(c.type)}</span><b>${c.date?fmtD(c.date):DN[c.day]} ${esc(c.start)}</b></div>`).join('')||'<p class="hint">Ni vpisanih predavanj.</p>'}
- <label>Zapiski o predmetu</label><textarea id="sn" placeholder="Pogoji, literatura, povezave …">${esc(s.note)}</textarea>
+ <label>Zapiski o predmetu</label><textarea id="sn" placeholder="Pogoji, literatura …">${esc(s.note)}</textarea>
  <div class="btns"><button class="btn" id="sv">Shrani</button><button class="btn sec" id="sd">Izbriši predmet</button></div>`,el=>{
- el.querySelector('#gf').onsubmit=e=>{e.preventDefault();s.grades.push({id:uid(),label:val(el,'label'),value:val(el,'value')});save();render();subjectView(s)};
- el.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{s.grades=s.grades.filter(g=>g.id!==b.dataset.dg);save();render();subjectView(s)});
+ const re=()=>{save();render();subjectView(s)};
+ el.querySelector('#se').onclick=()=>subjectForm(s);
+ el.querySelector('#mf').onsubmit=e=>{e.preventDefault();s.materials.push({id:uid(),title:val(el,'mt'),url:val(el,'mu')});re()};
+ el.querySelectorAll('[data-dm]').forEach(b=>b.onclick=()=>{s.materials=s.materials.filter(m=>m.id!==b.dataset.dm);re()});
+ el.querySelector('#gf').onsubmit=e=>{e.preventDefault();s.grades.push({id:uid(),label:val(el,'label'),value:val(el,'value')});re()};
+ el.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{s.grades=s.grades.filter(g=>g.id!==b.dataset.dg);re()});
  el.querySelector('#sv').onclick=()=>{s.note=el.querySelector('#sn').value;done('Shranjeno')};
- el.querySelector('#sd').onclick=()=>{S.subjects=S.subjects.filter(x=>x.id!==s.id);done('Predmet izbrisan')}})}
-function subjectForm(){sheet(`<h3>Nov predmet</h3><form><label>Ime predmeta</label><input name="name" required><label>Nosilec</label><input name="prof"><label>Barva</label>${swatch(COLORS,COLORS[S.subjects.length%6])}<div class="btns"><button class="btn">Dodaj</button></div></form>`,el=>{pickSw(el);el.querySelector('form').onsubmit=e=>{e.preventDefault();S.subjects.push({id:uid(),name:val(el,'name'),prof:val(el,'prof'),color:swVal(el),grades:[],note:''});done('Dodano')}})}
+ el.querySelector('#sd').onclick=()=>{S.subjects=S.subjects.filter(x=>x.id!==s.id);done('Predmet izbrisan')};
+ const tf=el.querySelector('#tf');if(tf)T.getTeamFiles(s.teamId).then(fs=>{tf.innerHTML=fs.length?fs.map(f=>`<div class="row"><a class="mat" href="${esc(f.url)}" target="_blank" rel="noopener">${f.folder?'📁 ':''}${esc(f.name)}</a><span class="s">${esc(when(f.when,true))}</span></div>`).join(''):'<p class="hint">Team nima datotek.</p>'}).catch(e=>{tf.innerHTML=`<p class="hint">${esc(errText(e))}</p>`})})}
+function subjectForm(s){const isNew=!s;s=s||{name:'',prof:'',color:COLORS[S.subjects.length%6],teamId:''};
+ sheet(`<h3>${isNew?'Nov predmet':'Uredi predmet'}</h3><form><label>Ime predmeta</label><input name="name" required value="${esc(s.name)}"><label>Profesor / nosilec</label><input name="prof" value="${esc(s.prof)}">
+ ${M.teams&&M.teams.length?`<label>Teams team (za gradiva)</label><select name="team"><option value="">– brez –</option>${M.teams.map(t=>`<option value="${esc(t.id)}" ${t.id===s.teamId?'selected':''}>${esc(t.name)}</option>`).join('')}</select>`:''}
+ <label>Barva</label>${swatch(COLORS,s.color)}<div class="btns"><button class="btn">${isNew?'Dodaj':'Shrani'}</button></div></form>`,el=>{pickSw(el);el.querySelector('form').onsubmit=e=>{e.preventDefault();
+  const old=s.name,o=Object.assign(s,{name:val(el,'name'),prof:val(el,'prof'),color:swVal(el)||s.color});const tsel=el.querySelector('[name=team]');if(tsel)o.teamId=tsel.value;
+  if(isNew){Object.assign(o,{id:uid(),grades:[],note:'',materials:[]});S.subjects.push(o);done('Dodano')}
+  else{if(old!==o.name){S.classes.forEach(c=>{if(c.subject===old)c.subject=o.name});S.events.forEach(x=>{if(x.subject===old)x.subject=o.name})}save();render();subjectView(o)}}})}
 
 function profile(){sheet(`<h3>Profil</h3><form><label>Ime</label><input name="name" value="${esc(S.name)}"><label>Šola</label><input name="school" value="${esc(S.school)}"><label>Program</label><input name="program" value="${esc(S.program)}"><div class="btns"><button class="btn">Shrani</button></div></form>
  <h2>Podatki</h2><p class="hint">Podatki so shranjeni samo v tem brskalniku. Za varnostno kopijo kopiraj besedilo in ga shrani.</p>
@@ -174,7 +190,7 @@ function importSheet(){sheet(`<h3>Uvozi urnik</h3><p class="hint">Izberi XML ali
 
 // --- Teams ---
 function when(s,short){if(!s)return'';const d=new Date(s);const t=d.toLocaleTimeString('sl',{hour:'2-digit',minute:'2-digit'});if(iso(d)===iso(new Date()))return t;return d.getDate()+'. '+(d.getMonth()+1)+'.'+(short?'':' '+t)}
-const errText=e=>e&&e.status===403?'Šola ni dovolila tega dostopa (potrebna je odobritev admina).':e&&e.status===401?'Prijava je potekla. Odjavi se in se prijavi znova.':'Napaka pri nalaganju: '+(e&&e.message||e);
+const errText=e=>e&&/consent|admin|AADSTS65001|AADSTS90094/i.test(String(e.errorCode||'')+e.message)?'Šola zahteva, da schoolMe odobri IT admin. Do takrat deluje vse ostalo ročno.':e&&e.status===403?'Šola ni dovolila tega dostopa (potrebna je odobritev admina).':e&&e.status===401?'Prijava je potekla. Odjavi se in se prijavi znova.':'Napaka pri nalaganju: '+(e&&e.message||e);
 const rr=()=>{if(tab==='chat'||tab==='home'||tab==='urnik')render()};
 async function loadMS(){M.err='';M.teams=null;M.chats=null;rr();
  const [t,c,ev]=await Promise.allSettled([T.getTeams(),T.getChats(),T.getEvents(addD(today,-7),28)]);
@@ -195,13 +211,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  else if(d.ms==='refresh')loadMS();
  else if(d.ms==='back'){M.err='';M.view=M.view&&M.view.parent?M.view.parent:null;M.msgs=null;render()}
  else if(d.msTeam)openMS('team',d.msTeam);else if(d.msCh)openMS('ch',d.msCh);else if(d.msChat)openMS('chat',d.msChat)});
-T.initTeams().then(a=>{if(a){M.acc=a;loadMS()}else render()}).catch(e=>{M.err=errText(e);render()});
+T.initTeams().then(a=>{if(a){M.acc=a;loadMS()}else{if(T.lastError())M.err=T.lastError();render()}}).catch(e=>{M.err=errText(e);render()});
 
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
  if(d.go)go(d.go);else if(d.day){sel=new Date(d.day+'T00:00');render()}else if(d.wk){sel=addD(sel,+d.wk);render()}
  else if(d.editCls)classForm(S.classes.find(c=>c.id===d.editCls));else if(d.editEv)eventForm(S.events.find(x=>x.id===d.editEv));
  else if(d.note)noteForm(S.notes.find(n=>n.id===d.note));else if(d.sub)subjectView(S.subjects.find(s=>s.id===d.sub));
- else if(d.act)({addClass:()=>classForm(),addEvent:()=>eventForm(),addNote:()=>noteForm(),addSubject:subjectForm,import:importSheet})[d.act]()});
+ else if(d.act)({addClass:()=>classForm(),addEvent:()=>eventForm(),addNote:()=>noteForm(),addSubject:()=>subjectForm(),import:importSheet})[d.act]()});
 $('#ava').onclick=profile;
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(V[h]&&h!==tab){tab=h;render()}});
 render();

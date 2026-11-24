@@ -19,11 +19,18 @@ const msal = new PublicClientApplication({
   cache: { cacheLocation: 'localStorage' },
 });
 
-let ready = null;
+let ready = null, lastErr = '';
+export const lastError = () => lastErr;
 export function initTeams() {
   if (!ready) ready = (async () => {
     await msal.initialize();
-    const res = await msal.handleRedirectPromise().catch(e => { console.warn(e); return null; });
+    const res = await msal.handleRedirectPromise().catch(e => {
+      console.warn(e);
+      lastErr = /consent|admin|AADSTS65001|AADSTS90094|access_denied/i.test(String(e.errorCode || '') + e.message)
+        ? 'Šola zahteva, da schoolMe odobri IT admin. Do takrat deluje vse ostalo ročno.'
+        : 'Prijava ni uspela: ' + (e.errorMessage || e.message);
+      return null;
+    });
     if (res?.account) msal.setActiveAccount(res.account);
     else if (!msal.getActiveAccount() && msal.getAllAccounts()[0]) msal.setActiveAccount(msal.getAllAccounts()[0]);
     return account();
@@ -108,3 +115,9 @@ export async function getEvents(from, days = 21) {
     teams: true,
   }));
 }
+
+// Datoteke teama (mapa "Dokumenti" skupine: vsak kanal ima svojo mapo)
+export const getTeamFiles = async teamId =>
+  (await graph(`/groups/${encodeURIComponent(teamId)}/drive/root/children?$top=50`, ['Files.Read.All'])).value.map(f => ({
+    name: f.name, url: f.webUrl, folder: !!f.folder, when: f.lastModifiedDateTime,
+  })).sort((a, b) => (b.folder - a.folder) || a.name.localeCompare(b.name));
