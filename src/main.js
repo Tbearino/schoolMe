@@ -112,7 +112,7 @@ const go=k=>{tab=k;try{history.replaceState(null,'','#'+k)}catch(e){}render();wi
 
 // sheets
 const close=()=>$('#scrim').classList.remove('open');
-function sheet(html,bind){$('#sheet').innerHTML=html;$('#scrim').classList.add('open');bind&&bind($('#sheet'));const f=$('#sheet').querySelector('input,textarea,select');f&&!$('#sheet .shead')&&setTimeout(()=>f.focus(),50)}
+function sheet(html,bind){$('#sheet').innerHTML=html;$('#scrim').classList.add('open');bind&&bind($('#sheet'));const f=$('#sheet').querySelector('input,textarea,select');f&&!$('#sheet .shead')&&!$('#sheet [data-theme-set]')&&matchMedia('(pointer:fine)').matches&&setTimeout(()=>f.focus(),50)}
 $('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')close()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 const swatch=(list,cur)=>`<div class="sw">${list.map(c=>`<button type="button" data-c="${c}" class="${c===cur?'on':''}" style="background:${c}" aria-label="Barva ${c}"></button>`).join('')}</div>`;
