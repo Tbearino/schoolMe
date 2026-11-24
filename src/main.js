@@ -221,4 +221,5 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
 $('#ava').onclick=profile;
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(V[h]&&h!==tab){tab=h;render()}});
 render();
+if('serviceWorker' in navigator&&location.hostname!=='localhost')navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
