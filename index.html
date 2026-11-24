@@ -8,6 +8,7 @@
 <link rel="icon" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="schoolMe">
@@ -107,6 +108,26 @@ textarea{min-height:90px;resize:vertical}
 .sgrade{text-align:center;background:#ffffff2e;border-radius:16px;padding:8px 14px;flex:none}
 .sgrade span{display:block;font-size:12px;opacity:.9}.sgrade b{font-size:28px;line-height:1.1}
 .mat{color:var(--ink);font-weight:600;text-decoration:none;overflow-wrap:anywhere}.mat:hover{color:var(--pink)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-radius:14px;padding:4px;margin:-4px 0 16px}
+.seg button{border:0;background:none;border-radius:10px;min-height:40px;font-weight:600;color:var(--mute)}
+.seg button.on{background:var(--app);color:var(--ink);box-shadow:0 2px 8px #0001}
+.mnav{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.mnav .arr{border:0;background:var(--card);border-radius:12px;width:44px;min-height:44px;font-size:20px;color:var(--ink)}
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.mwh{text-align:center;font-size:12px;color:var(--mute);font-weight:600;padding:4px 0}
+.mc{border:0;background:var(--card);border-radius:12px;min-height:64px;padding:5px 3px;display:flex;flex-direction:column;align-items:center;gap:2px;overflow:hidden}
+.mc.out{opacity:.35}.mc.on{outline:2px solid var(--pink);outline-offset:-2px}
+.mn{font-size:13px;font-weight:700;width:24px;height:24px;line-height:24px;border-radius:50%}
+.mc.today .mn{background:var(--grad);color:#fff}
+.chip{display:block;width:100%;border-radius:5px;color:#fff;font-size:9.5px;font-weight:700;line-height:15px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.chip.ex{background:#e5484d}.more{font-size:10px;color:var(--mute)}
+.wday{margin-bottom:10px}.wday.today .wdh{color:var(--pink)}
+.wdh{border:0;background:none;padding:6px 0;font-size:14px;color:var(--mute);min-height:36px}.wdh b{color:inherit}
+.wday.today .wdh b{color:var(--pink)}
+.wnone{color:var(--line);padding:0 0 4px 4px}
+.it{display:flex;gap:12px;width:100%;border:0;text-align:left;background:var(--card);border-left:5px solid var(--c);border-radius:14px;padding:10px 12px;margin-bottom:6px}
+.it.ex{background:color-mix(in srgb,#e5484d 14%,var(--card))}
+.itt{width:44px;flex:none;font-weight:700;font-size:14px}.it small{color:var(--mute);font-weight:500}
 .msg{background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:10px}
 .mh{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:4px}.mh span{color:var(--mute);white-space:nowrap}
 .mb{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}

@@ -52,13 +52,27 @@ home(){const u=upcoming();return `<h1><small>Živjo,</small>${esc(S.name||'štud
  <div class="btns"><button class="btn sec" data-act="addClass">+ Predavanje</button><button class="btn sec" data-act="addEvent">+ Rok / izpit</button></div>
  <h2>Sticky notes <button class="link" data-go="zapiski">Vsi</button></h2>
  <div class="notes">${S.notes.slice(0,3).map(noteHTML).join('')}<button class="note add" data-act="addNote">+ Dodaj</button></div>`},
-urnik(){const mon=addD(sel,-wd(sel));const list=classesOn(sel);const now=new Date();const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');const isT=iso(sel)===iso(today);
+urnikDan(){const mon=addD(sel,-wd(sel));const list=classesOn(sel);const now=new Date();const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');const isT=iso(sel)===iso(today);
  const evs=S.events.filter(e=>e.date===iso(sel));
  return `<h1><small>${sel.getDate()}. ${sel.toLocaleDateString('sl',{month:'long'})}</small>${isT?'Danes':DN[wd(sel)]==='Ned'?'Nedelja':sel.toLocaleDateString('sl',{weekday:'long'}).replace(/^./,c=>c.toUpperCase())}</h1>
  <div class="week"><button class="arr" data-wk="-7" aria-label="Prejšnji teden">‹</button><div class="days">${[0,1,2,3,4,5,6].map(i=>{const d=addD(mon,i);return `<button class="day ${iso(d)===iso(sel)?'on':''} ${classesOn(d).length||S.events.some(e=>e.date===iso(d))?'has':''}" data-day="${iso(d)}">${DN[i]}<b>${d.getDate()}</b></button>`}).join('')}</div><button class="arr" data-wk="7" aria-label="Naslednji teden">›</button></div>
  ${list.length?`<div class="tl">${list.map(c=>`<div class="slot"><span class="hr">${esc(c.start)}</span><${c.teams?'div':'button'} class="cls ${isT&&c.start<=hm&&c.end>=hm?'now':''}" style="--c:${esc(c.color)}" ${c.teams?'':`data-edit-cls="${esc(c.id)}"`}><div class="t">${esc(c.subject)}</div><div class="s">${esc([c.type,c.room,c.prof].filter(Boolean).join(' · '))}</div><div class="s">${esc(c.start)}–${esc(c.end)}${c.date?'':' · vsak teden'}</div>${c.join?`<a class="join" href="${esc(c.join)}" target="_blank" rel="noopener">Pridruži se v Teams</a>`:''}</${c.teams?'div':'button'}></div>`).join('')}</div>`:'<div class="empty">Ta dan ni predavanj.</div>'}
  ${evs.length?`<h2>Roki ta dan</h2>${evs.map(e=>evHTML({t:e.title,s:e.subject,when:fmtD(e.date),time:e.time,ev:e.id},1)).join('')}`:''}
  <div class="btns"><button class="btn" data-act="addClass">+ Predavanje</button><button class="btn sec" data-act="import">Uvozi urnik</button></div>`},
+urnik(){const seg=`<div class="seg" role="tablist">${[['dan','Dan'],['teden','Teden'],['mesec','Mesec']].map(([k,l])=>`<button role="tab" aria-selected="${uv===k}" class="${uv===k?'on':''}" data-uv="${k}">${l}</button>`).join('')}</div>`;
+ const add=`<div class="btns"><button class="btn" data-act="addClass">+ Predavanje</button><button class="btn sec" data-act="addEvent">+ Rok</button><button class="btn sec" data-act="import">Uvozi urnik</button></div>`;
+ if(uv==='teden'){const mon=addD(sel,-wd(sel)),sun=addD(mon,6);
+  return `<h1><small>${mon.getDate()}. ${mon.getMonth()!==sun.getMonth()?(mon.getMonth()+1)+'. ':''}– ${sun.getDate()}. ${sun.toLocaleDateString('sl',{month:'long'})}</small>Teden</h1>${seg}
+  <div class="mnav"><button class="arr" data-wk="-7" aria-label="Prejšnji teden">‹</button><button class="link" data-today>Ta teden</button><button class="arr" data-wk="7" aria-label="Naslednji teden">›</button></div>
+  ${[0,1,2,3,4,5,6].map(i=>{const d=addD(mon,i),it=dayItems(d),t=iso(d)===iso(today);return `<div class="wday ${t?'today':''}"><button class="wdh" data-pick="${iso(d)}"><b>${DN[i]}</b> ${d.getDate()}. ${d.getMonth()+1}.</button>${it.length?it.map(itemHTML).join(''):'<div class="wnone">–</div>'}</div>`}).join('')}${add}`}
+ if(uv==='mesec'){const y=sel.getFullYear(),m=sel.getMonth(),first=new Date(y,m,1),start=addD(first,-wd(first));const cells=[];for(let i=0;i<42;i++){const d=addD(start,i);if(i>=35&&d.getMonth()!==m)break;cells.push(d)}
+  const list=dayItems(sel);
+  return `<h1><small>${y}</small>${first.toLocaleDateString('sl',{month:'long'}).replace(/^./,c=>c.toUpperCase())}</h1>${seg}
+  <div class="mnav"><button class="arr" data-mo="-1" aria-label="Prejšnji mesec">‹</button><button class="link" data-today>Danes</button><button class="arr" data-mo="1" aria-label="Naslednji mesec">›</button></div>
+  <div class="mgrid">${DN.map(n=>`<span class="mwh">${n[0]}${n[1]}</span>`).join('')}${cells.map(d=>{const it=dayItems(d);return `<button class="mc ${d.getMonth()!==m?'out':''} ${iso(d)===iso(today)?'today':''} ${iso(d)===iso(sel)?'on':''}" data-msel="${iso(d)}"><span class="mn">${d.getDate()}</span>${it.slice(0,3).map(x=>`<span class="chip ${x.exam?'ex':''}" style="${x.exam?'':`background:${esc(x.color)}`}">${esc(x.exam?'IZP':short(x.subject))}</span>`).join('')}${it.length>3?`<span class="more">+${it.length-3}</span>`:''}</button>`}).join('')}</div>
+  <h2>${sel.getDate()}. ${sel.toLocaleDateString('sl',{month:'long'})}, ${sel.toLocaleDateString('sl',{weekday:'long'})}</h2>
+  ${list.length?list.map(itemHTML).join(''):'<div class="empty">Ta dan je prost.</div>'}${add}`}
+ return V.urnikDan().replace('</h1>','</h1>'+seg)},
 predmeti(){return `<h1><small>${esc(S.program||'')}</small>Predmeti</h1>
  <div class="btns" style="margin:-6px 0 16px"><button class="btn" data-act="addSubject">+ Dodaj predmet</button><button class="btn sec" data-act="import">Uvozi iz urnika</button></div>
  ${S.subjects.map(s=>{const a=avg(s);return `<button class="subj" data-sub="${esc(s.id)}"><span class="dot" style="background:${esc(s.color)}">${esc(s.name[0]||'?')}</span><span><span class="t">${esc(s.name)}</span><br><span class="s">${s.grades.length} ocen · ${S.events.filter(e=>e.subject===s.name&&e.date>=iso(today)).length} rokov</span></span><span class="avg">${a??''}</span></button>`}).join('')||'<div class="empty">Še ni predmetov.</div>'}`},
@@ -81,6 +95,12 @@ chat(){
  ${M.chats==null?'<div class="empty">Nalagam klepete …</div>':M.chats.slice(0,15).map(c=>`<button class="subj" data-ms-chat="${esc(c.id)}"><span class="dot" style="background:${c.type==='oneOnOne'?'var(--violet)':'var(--pink)'}">${esc((c.lastFrom||c.name)[0]||'?')}</span><span><span class="t">${esc(c.name)}</span><br><span class="s">${esc((c.lastFrom?c.lastFrom+': ':'')+c.last).slice(0,70)}</span></span><span class="s" style="margin-left:auto;white-space:nowrap">${esc(when(c.when,true))}</span></button>`).join('')||'<div class="empty">Ni klepetov.</div>'}
  <div class="btns"><button class="btn sec" data-ms="logout">Odjava</button></div>`}
 };
+
+let uv='dan';try{uv=localStorage.getItem('schoolme-uv')||'dan'}catch(e){}
+const short=n=>{const s=S.subjects.find(x=>x.name===n);return s&&s.code?s.code:(n||'?').split(/\s+/).filter(w=>w.length>2).map(w=>w[0]).join('').slice(0,3).toUpperCase()||(n||'?').slice(0,3).toUpperCase()};
+const subjColor=n=>S.subjects.find(x=>x.name===n)?.color||'#9b7bff';
+function dayItems(d){const k=iso(d);return classesOn(d).map(c=>({...c,kind:'c'})).concat(S.events.filter(e=>e.date===k).map(e=>({id:e.id,kind:'e',subject:e.subject||e.title,title:e.title,start:e.time||'',color:/^izpit/i.test(e.title)?'#e5484d':subjColor(e.subject),exam:/^izpit/i.test(e.title)}))).sort((a,b)=>(a.start||'99').localeCompare(b.start||'99'))}
+const itemHTML=x=>`<button class="it ${x.exam?'ex':''}" style="--c:${esc(x.color)}" ${x.kind==='e'?`data-edit-ev="${esc(x.id)}"`:x.teams?'':`data-edit-cls="${esc(x.id)}"`}><span class="itt">${esc(x.start||'')}${x.end?'<br><small>'+esc(x.end)+'</small>':''}</span><span><b>${esc(x.kind==='e'?x.title:x.subject)}</b><br><small>${esc(x.kind==='e'?(x.title===x.subject?'':x.subject):[x.type,x.room,x.prof].filter(Boolean).join(' · '))}</small></span></button>`;
 function avg(s){const n=s.grades.map(g=>parseFloat(String(g.value).replace(',','.'))).filter(x=>!isNaN(x));return n.length?(n.reduce((a,b)=>a+b,0)/n.length).toFixed(1).replace('.0',''):null}
 
 function render(){$('#view').innerHTML=V[tab]?V[tab]():V.home();$('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-go="${k}" aria-label="${l}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">${I[k]}</svg>${l}</button>`).join('');$('#ava').textContent=(S.name||'T')[0].toUpperCase()}
@@ -253,7 +273,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 T.initTeams().then(a=>{if(a){M.acc=a;loadMS()}else{if(T.lastError())M.err=T.lastError();render()}}).catch(e=>{M.err=errText(e);render()});
 
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
- if(d.go)go(d.go);else if(d.day){sel=new Date(d.day+'T00:00');render()}else if(d.wk){sel=addD(sel,+d.wk);render()}
+ if(d.go)go(d.go);else if(d.uv){uv=d.uv;try{localStorage.setItem('schoolme-uv',uv)}catch(x){}render()}else if(d.mo){sel=new Date(sel.getFullYear(),sel.getMonth()+ +d.mo,1);render()}else if(d.msel){sel=new Date(d.msel+'T00:00');render()}else if(d.pick){sel=new Date(d.pick+'T00:00');uv='dan';render()}else if('today' in d){sel=new Date(today);render()}else if(d.day){sel=new Date(d.day+'T00:00');render()}else if(d.wk){sel=addD(sel,+d.wk);render()}
  else if(d.editCls)classForm(S.classes.find(c=>c.id===d.editCls));else if(d.editEv)eventForm(S.events.find(x=>x.id===d.editEv));
  else if(d.note)noteForm(S.notes.find(n=>n.id===d.note));else if(d.sub)subjectView(S.subjects.find(s=>s.id===d.sub));
  else if(d.act)({addClass:()=>classForm(),addEvent:()=>eventForm(),addNote:()=>noteForm(),addSubject:()=>subjectForm(),import:importSheet})[d.act]()});
