@@ -105,7 +105,7 @@ function avg(s){const n=s.grades.map(g=>parseFloat(String(g.value).replace(',','
 
 
 function applyTheme(){const t=S.theme||'light';const r=document.documentElement;if(t==='auto')delete r.dataset.theme;else r.dataset.theme=t;
- const m=document.querySelector('meta[name=color-scheme]');if(m)m.content=t==='auto'?'light dark':t;
+ const m=document.querySelector('meta[name=color-scheme]');if(m)m.content='light dark';
  const tc=document.querySelector('meta[name=theme-color]');if(tc)tc.content=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches)?'#1f1a23':'#ffffff'}
 function render(){applyTheme();$('#view').innerHTML=V[tab]?V[tab]():V.home();$('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-go="${k}" aria-label="${l}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">${I[k]}</svg>${l}</button>`).join('');$('#ava').textContent=(S.name||'T')[0].toUpperCase()}
 const go=k=>{tab=k;try{history.replaceState(null,'','#'+k)}catch(e){}render();window.scrollTo(0,0)};
