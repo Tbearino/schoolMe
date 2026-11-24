@@ -103,7 +103,11 @@ function dayItems(d){const k=iso(d);return classesOn(d).map(c=>({...c,kind:'c'})
 const itemHTML=x=>`<button class="it ${x.exam?'ex':''}" style="--c:${esc(x.color)}" ${x.kind==='e'?`data-edit-ev="${esc(x.id)}"`:x.teams?'':`data-edit-cls="${esc(x.id)}"`}><span class="itt">${esc(x.start||'')}${x.end?'<br><small>'+esc(x.end)+'</small>':''}</span><span><b>${esc(x.kind==='e'?x.title:x.subject)}</b><br><small>${esc(x.kind==='e'?(x.title===x.subject?'':x.subject):[x.type,x.room,x.prof].filter(Boolean).join(' · '))}</small></span></button>`;
 function avg(s){const n=s.grades.map(g=>parseFloat(String(g.value).replace(',','.'))).filter(x=>!isNaN(x));return n.length?(n.reduce((a,b)=>a+b,0)/n.length).toFixed(1).replace('.0',''):null}
 
-function render(){$('#view').innerHTML=V[tab]?V[tab]():V.home();$('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-go="${k}" aria-label="${l}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">${I[k]}</svg>${l}</button>`).join('');$('#ava').textContent=(S.name||'T')[0].toUpperCase()}
+
+function applyTheme(){const t=S.theme||'light';const r=document.documentElement;if(t==='auto')delete r.dataset.theme;else r.dataset.theme=t;
+ const m=document.querySelector('meta[name=color-scheme]');if(m)m.content=t==='auto'?'light dark':t;
+ const tc=document.querySelector('meta[name=theme-color]');if(tc)tc.content=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches)?'#1f1a23':'#ffffff'}
+function render(){applyTheme();$('#view').innerHTML=V[tab]?V[tab]():V.home();$('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-go="${k}" aria-label="${l}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">${I[k]}</svg>${l}</button>`).join('');$('#ava').textContent=(S.name||'T')[0].toUpperCase()}
 const go=k=>{tab=k;try{history.replaceState(null,'','#'+k)}catch(e){}render();window.scrollTo(0,0)};
 
 // sheets
@@ -178,9 +182,11 @@ function subjectForm(s){const isNew=!s;s=s||{name:'',prof:'',color:COLORS[S.subj
   if(isNew){Object.assign(o,{id:uid(),grades:[],note:'',materials:[]});S.subjects.push(o);done('Dodano')}
   else{if(old!==o.name){S.classes.forEach(c=>{if(c.subject===old)c.subject=o.name});S.events.forEach(x=>{if(x.subject===old)x.subject=o.name})}save();render();subjectView(o)}}})}
 
-function profile(){sheet(`<h3>Profil</h3><form><label>Ime</label><input name="name" value="${esc(S.name)}"><label>Šola</label><input name="school" value="${esc(S.school)}"><label>Program</label><input name="program" value="${esc(S.program)}"><div class="btns"><button class="btn">Shrani</button></div></form>
+function profile(){sheet(`<h3>Profil</h3><form><label>Ime</label><input name="name" value="${esc(S.name)}"><label>Šola</label><input name="school" value="${esc(S.school)}"><label>Program</label><input name="program" value="${esc(S.program)}"><label>Videz</label><div class="seg" style="margin:0">${[['light','Svetla'],['dark','Temna'],['auto','Kot telefon']].map(([k,l])=>`<button type="button" data-theme-set="${k}" class="${(S.theme||'light')===k?'on':''}">${l}</button>`).join('')}</div>
+ <div class="btns"><button class="btn">Shrani</button></div></form>
  <h2>Podatki</h2><p class="hint">Podatki so shranjeni samo v tem brskalniku. Za varnostno kopijo kopiraj besedilo in ga shrani.</p>
  <div class="btns"><button class="btn sec" id="cp">Kopiraj varnostno kopijo</button><button class="btn sec" id="rs">Prilepi kopijo</button><button class="btn sec" id="cl">Počisti vzorce</button></div>`,el=>{
+ el.querySelectorAll('[data-theme-set]').forEach(b=>b.onclick=()=>{S.theme=b.dataset.themeSet;save();applyTheme();el.querySelectorAll('[data-theme-set]').forEach(x=>x.classList.toggle('on',x===b))});
  el.querySelector('form').onsubmit=e=>{e.preventDefault();S.name=val(el,'name');S.school=val(el,'school');S.program=val(el,'program');done('Shranjeno')};
  el.querySelector('#cp').onclick=()=>navigator.clipboard.writeText(JSON.stringify(S)).then(()=>toast('Kopirano'),()=>toast('Kopiranje ni uspelo'));
  el.querySelector('#rs').onclick=()=>sheet(`<h3>Obnovi kopijo</h3><textarea id="bk" placeholder="Prilepi besedilo kopije"></textarea><div class="btns"><button class="btn" id="ok">Obnovi</button></div>`,e2=>{e2.querySelector('#ok').onclick=()=>{try{const o=JSON.parse(e2.querySelector('#bk').value);if(!o.subjects)throw 0;S=o;done('Obnovljeno')}catch(x){toast('To ni veljavna kopija')}}});
