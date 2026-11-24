@@ -5,3 +5,7 @@
 - `npm install` → `npm run dev` (http://localhost:5173)
 - Deploy: Vercel (Vite, output `dist`)
 - Microsoft prijava: app registracija "SchoolMe" v šolskem Entra tenantu. Vsak nov naslov dodaj pod Authentication → Single-page application → Redirect URIs.
+
+## Sinhronizacija (Supabase)
+1. V Supabase SQL Editor zaženi `supabase.sql`.
+2. V Vercelu dodaj spremenljivki `VITE_SUPABASE_URL` in `VITE_SUPABASE_ANON_KEY`, nato Redeploy.

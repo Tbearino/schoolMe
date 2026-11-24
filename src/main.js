@@ -1,4 +1,5 @@
 import * as T from './teams.js';
+import * as Y from './sync.js';
 {
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -24,7 +25,26 @@ const sample=()=>({name:'Teja',school:'B2 Visoka šola za poslovne vede',program
 let S;
 try{S=JSON.parse(localStorage.getItem('schoolme'))}catch(e){}
 if(!S||!S.subjects)S=sample();
-const save=()=>{try{localStorage.setItem('schoolme',JSON.stringify(S))}catch(e){}};
+const store=()=>{try{localStorage.setItem('schoolme',JSON.stringify(S))}catch(e){}};
+let pushT=null;const Z={state:'',err:'',last:null};
+const save=()=>{S._updated=Date.now();store();if(Y.currentUser()){clearTimeout(pushT);pushT=setTimeout(syncPush,1200)}};
+async function syncPush(){if(!Y.currentUser())return;Z.state='push';try{await Y.push(S);Z.last=new Date();Z.err=''}catch(e){Z.err=e.message}Z.state='';syncUI()}
+async function syncPull(){if(!Y.currentUser())return;try{const r=await Y.pull();Z.err='';
+  if(!r||!r.data){await syncPush();return}
+  const remoteT=r.data._updated||Date.parse(r.updated_at)||0,localT=S._updated||0;
+  if(remoteT>localT||S.sample){S=r.data;store();render()}else if(localT>remoteT)await syncPush();
+  Z.last=new Date()}catch(e){Z.err=e.message}syncUI()}
+function syncUI(){const b=document.querySelector('#syncbox');if(b)b.innerHTML=syncHTML()}
+function syncHTML(){if(!Y.configured)return '<p class="hint">Sinhronizacija še ni nastavljena (manjka Supabase).</p>';
+ const u=Y.currentUser();if(u)return `<p>Prijavljena kot <b>${esc(u.email)}</b><br><span class="hint">${Z.err?esc(Z.err):Z.state?'Sinhroniziram …':Z.last?'Sinhronizirano ob '+Z.last.toLocaleTimeString('sl',{hour:'2-digit',minute:'2-digit'}):'Povezano'}</span></p><div class="btns"><button type="button" class="btn sec" id="ysync">Sinhroniziraj zdaj</button><button type="button" class="btn sec" id="yout">Odjava</button></div>`;
+ return `<p class="hint">Prijavi se in tvoji predmeti, urnik, ocene in zapiski bodo enaki na vseh napravah.</p><form id="yf"><label>E-mail</label><input type="email" name="ye" required autocomplete="email"><label>Geslo</label><input type="password" name="yp" required minlength="6" autocomplete="current-password"><div class="btns"><button class="btn" data-m="in">Prijava</button><button class="btn sec" data-m="up">Ustvari račun</button></div>${Z.err?`<p class="hint">${esc(Z.err)}</p>`:''}</form>`}
+function bindSync(el){el.addEventListener('click',async e=>{const t=e.target;
+  if(t.id==='ysync')syncPull();
+  if(t.id==='yout'){await Y.signOut();syncUI()}
+  if(t.dataset&&t.dataset.m){e.preventDefault();const f=el.querySelector('#yf');if(!f.reportValidity())return;const em=f.ye.value.trim(),pw=f.yp.value;
+   try{Z.err='';const u=t.dataset.m==='in'?await Y.signIn(em,pw):await Y.signUp(em,pw);
+    if(!u){Z.err='Poslala sem ti e-mail za potrditev. Klikni povezavo, nato se tu prijavi.';syncUI();return}
+    await syncPull();toast('Prijavljena')}catch(x){Z.err=x.message;syncUI()}}})}
 let tab=(location.hash||'').slice(1)||'home',sel=new Date(today),openSub=null;
 
 const I={home:'<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/>',urnik:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',predmeti:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/>',zapiski:'<path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/>',chat:'<path d="M4 5h16v11H9l-5 4z"/>'};
@@ -184,8 +204,10 @@ function subjectForm(s){const isNew=!s;s=s||{name:'',prof:'',color:COLORS[S.subj
 
 function profile(){sheet(`<h3>Profil</h3><form><label>Ime</label><input name="name" value="${esc(S.name)}"><label>Šola</label><input name="school" value="${esc(S.school)}"><label>Program</label><input name="program" value="${esc(S.program)}"><label>Videz</label><div class="seg" style="margin:0">${[['light','Svetla'],['dark','Temna'],['auto','Kot telefon']].map(([k,l])=>`<button type="button" data-theme-set="${k}" class="${(S.theme||'light')===k?'on':''}">${l}</button>`).join('')}</div>
  <div class="btns"><button class="btn">Shrani</button></div></form>
- <h2>Podatki</h2><p class="hint">Podatki so shranjeni samo v tem brskalniku. Za varnostno kopijo kopiraj besedilo in ga shrani.</p>
+ <h2>Sinhronizacija</h2><div id="syncbox">${syncHTML()}</div>
+ <h2>Varnostna kopija</h2><p class="hint">Kopiraj besedilo in ga shrani, če želiš kopijo tudi zunaj appa.</p>
  <div class="btns"><button class="btn sec" id="cp">Kopiraj varnostno kopijo</button><button class="btn sec" id="rs">Prilepi kopijo</button><button class="btn sec" id="cl">Počisti vzorce</button></div>`,el=>{
+ bindSync(el);
  el.querySelectorAll('[data-theme-set]').forEach(b=>b.onclick=()=>{S.theme=b.dataset.themeSet;save();applyTheme();el.querySelectorAll('[data-theme-set]').forEach(x=>x.classList.toggle('on',x===b))});
  el.querySelector('form').onsubmit=e=>{e.preventDefault();S.name=val(el,'name');S.school=val(el,'school');S.program=val(el,'program');done('Shranjeno')};
  el.querySelector('#cp').onclick=()=>navigator.clipboard.writeText(JSON.stringify(S)).then(()=>toast('Kopirano'),()=>toast('Kopiranje ni uspelo'));
@@ -276,6 +298,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  else if(d.ms==='refresh')loadMS();
  else if(d.ms==='back'){M.err='';M.view=M.view&&M.view.parent?M.view.parent:null;M.msgs=null;render()}
  else if(d.msTeam)openMS('team',d.msTeam);else if(d.msCh)openMS('ch',d.msCh);else if(d.msChat)openMS('chat',d.msChat)});
+Y.init(u=>{Z.err='';if(u)syncPull();syncUI()}).then(u=>{if(u)syncPull()}).catch(e=>{Z.err=e.message});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncPull()});
 T.initTeams().then(a=>{if(a){M.acc=a;loadMS()}else{if(T.lastError())M.err=T.lastError();render()}}).catch(e=>{M.err=errText(e);render()});
 
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
