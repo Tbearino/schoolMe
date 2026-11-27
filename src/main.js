@@ -298,6 +298,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  else if(d.ms==='refresh')loadMS();
  else if(d.ms==='back'){M.err='';M.view=M.view&&M.view.parent?M.view.parent:null;M.msgs=null;render()}
  else if(d.msTeam)openMS('team',d.msTeam);else if(d.msCh)openMS('ch',d.msCh);else if(d.msChat)openMS('chat',d.msChat)});
+{const g=new URLSearchParams(location.search).get('go');if(g){try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}
+ if(g==='danes'){tab='urnik';uv='dan';sel=new Date(today);render()}else if(g==='mesec'){tab='urnik';uv='mesec';sel=new Date(today);render()}
+ else if(g==='rok'){render();eventForm()}else if(g==='zapisek'){tab='zapiski';render();noteForm()}}}
 Y.init(u=>{Z.err='';if(u)syncPull();syncUI()}).then(u=>{if(u)syncPull()}).catch(e=>{Z.err=e.message});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncPull()});
 T.initTeams().then(a=>{if(a){M.acc=a;loadMS()}else{if(T.lastError())M.err=T.lastError();render()}}).catch(e=>{M.err=errText(e);render()});

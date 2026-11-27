@@ -9,8 +9,71 @@
   "theme_color": "#ffffff",
   "lang": "sl",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Danes",
+      "short_name": "Danes",
+      "url": "/?go=danes",
+      "icons": [
+        {
+          "src": "/sc-danes.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mesec",
+      "short_name": "Mesec",
+      "url": "/?go=mesec",
+      "icons": [
+        {
+          "src": "/sc-mesec.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Nov rok",
+      "short_name": "Nov rok",
+      "url": "/?go=rok",
+      "icons": [
+        {
+          "src": "/sc-rok.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Nov zapisek",
+      "short_name": "Nov zapisek",
+      "url": "/?go=zapisek",
+      "icons": [
+        {
+          "src": "/sc-zapisek.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
